@@ -53,3 +53,15 @@ Always ensure security.allow_direct_credentials: "false" in your config-prod.yam
 To connect your local Anypoint Code Builder Vibe agent to this running Mule server without dealing with token timeouts, update your local MCP settings.
 
 File: a4d_mcp_settings.json
+{
+  "mcpServers": {
+    "protected-mulesoft-tools": {
+      "url": "http://localhost:8081/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "x-client-id": "YOUR_OKTA_CLIENT_ID",
+        "x-client-secret": "YOUR_OKTA_CLIENT_SECRET"
+      }
+    }
+  }
+}
