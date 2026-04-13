@@ -1,0 +1,5 @@
+mule:
+  okta:
+    domain: "trial-5791234.okta.com"
+    client_id: "0oa11uv9vi7OWhtBX698"
+    client_secret: "W9lpdr3VxPqfhWla_N0dJe5rdXFdDPhXj1RItlXtUHzeaCpbAFMAygcf5jeV5tCe"

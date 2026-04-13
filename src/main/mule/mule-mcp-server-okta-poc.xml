@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:mcp="http://www.mulesoft.org/schema/mule/mcp"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/mcp http://www.mulesoft.org/schema/mule/mcp/current/mule-mcp.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config"
+		doc:id="91b1194c-8d85-4c70-b283-314c764d7a89">
+		<http:listener-connection host="0.0.0.0"
+			port="8081" />
+	</http:listener-config>
+	<http:request-config name="Okta_Introspect_Config">
+		<http:request-connection
+			host="${mule.okta.domain}" protocol="HTTPS" />
+	</http:request-config>
+
+	<mcp:server-config name="MCP_Server"
+		doc:name="MCP Server" doc:id="8125dad2-7440-4b32-a5be-6f80982ed922"
+		serverName="mule-mcp-server" serverVersion="1.0.0">
+		<mcp:streamable-http-server-connection
+			listenerConfig="HTTP_Listener_config" />
+	</mcp:server-config>
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="d4522f00-44ff-4598-a085-d78c04920d56" file="config.yaml" />
+	<!-- <flow name="mcp-secure-session-flow">
+
+		<mcp:on-new-session-listener
+			doc:name="MCP Server - On New Session Listener"
+			doc:id="49edf83c-3bf2-4c1c-89c6-3b3ccbe0c50f" config-ref="MCP_Server">
+			<mcp:rejection
+				rejectWithStatusCode="#[vars.errorstatus]"
+				rejectWithMessage="#[vars.errormessage]" />
+		</mcp:on-new-session-listener>
+		<logger level="INFO" doc:name="Logger"
+			doc:id="534e1b00-658e-4ccc-9f61-d2b71a272d3c" message="#[message]" />
+		<set-variable variableName="jwtToken"
+			value="#[(payload.additionalProperties['authorization'] default '') replace 'Bearer ' with '']" />
+
+		<logger level="INFO" doc:name="Logger"
+			doc:id="af4e6624-9496-4896-8fe0-035a8e82f200" message="#[message]" />
+		<http:request method="POST"
+			config-ref="Okta_Introspect_Config"
+			path="/oauth2/default/v1/introspect">
+			<http:body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+-&#45;&#45;
+{
+    "token": vars.jwtToken,
+  // "token": "eyJraWQiOiJxc0RJNzFBMXdWN0k5U052M3FGd21TTDFLYm9QVDQ0ckt3dURjWGpUVTBnIiwiYWxnIjoiUlMyNTYifQ.eyJ2ZXIiOjEsImp0aSI6IkFULnlDbTE1LWdOU0lPbDNYcGRVMDQ4UUlLT0dDaW1UNG9ZUXU4Q1FVNy1IeTAiLCJpc3MiOiJodHRwczovL3RyaWFsLTU3OTEyMzQub2t0YS5jb20vb2F1dGgyL2RlZmF1bHQiLCJhdWQiOiJhcGk6Ly9kZWZhdWx0IiwiaWF0IjoxNzc1OTM0MjY1LCJleHAiOjE3NzU5Mzc4NjUsImNpZCI6IjBvYTExdXY5dmk3T1dodEJYNjk4Iiwic2NwIjpbIm1jcC5pbnZva2UiXSwic3ViIjoiMG9hMTF1djl2aTdPV2h0Qlg2OTgifQ.VVzhxrRwOFcssYgPhe7CWrp-H6N2lUFtG73GR2-EYvxryrxMnx9Zn3Nbiwn06kgOLJQl5D0Wyqsy7vF0bblwkpbtjP2h9dprP_wAB1WsUvSCAxV7fw8DAYkkaeuxBaV8pD8_c6w4CqDl2L8wLWCIC72h-BSMMQ4IJ81iw-gDOqvxaxfcctCMv_rwTOKw3-Rq1Z-nM2BXWsxxXRpcrtTRLQiTLs4PKb6V2P62tZXiR3lwukmsGbgQhoEMNUMHdsMq1Gti9IiWehsgDHuAAZTSvb0rDaDodDVz74B0y_tuxLAlkVE0-xER2KTaAY-xKKTJf1N36dFjIUxzcXgUXdiAKw",
+    "client_id": p('mule.okta.client_id'),
+    "client_secret": p('mule.okta.client_secret')
+}]]]></http:body>
+		</http:request>
+
+		<logger level="INFO" doc:name="Logger"
+			doc:id="eec2ba8c-f423-4437-8bed-a64ec14adc1f" message="#[message]" />
+		<choice>
+			<when expression="#[payload.active == true]">
+				<logger level="INFO"
+					message="MCP Session Established with Vibe. Token verified." />
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message"
+					doc:id="44216e42-8dc3-4d98-a185-d2e6a8d7e47a">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="errorstatus"><![CDATA[401]]></ee:set-variable>
+						<ee:set-variable variableName="errormessage"><![CDATA["Invalid or missing client credentials"]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow> -->
+	
+	<flow name="mcp-dual-auth-session-flow">
+        
+        <mcp:on-new-session-listener doc:name="MCP Server - On New Session Listener" config-ref="MCP_Server">
+            <mcp:rejection rejectWithStatusCode="#[vars.httpStatus]" rejectWithMessage="#[vars.errorMessage]" />
+        </mcp:on-new-session-listener>
+        
+        <logger level="INFO" doc:name="Log Incoming Request" message="Incoming MCP Streamable HTTP Request received."/>
+        
+        <set-variable variableName="jwtToken" value="#[(payload.additionalProperties['authorization'] default '') replace 'Bearer ' with '']" doc:name="Extract Bearer Token" />
+        <set-variable variableName="clientId" value="#[payload.additionalProperties['x-client-id'] default '']" doc:name="Extract Client ID" />
+        <set-variable variableName="clientSecret" value="#[payload.additionalProperties['x-client-secret'] default '']" doc:name="Extract Client Secret" />
+
+        <choice doc:name="Which Auth Method?">
+            
+            <when expression="#[not isEmpty(vars.jwtToken)]">
+                <logger level="INFO" message="Auth Strategy: Introspecting Bearer Token via Okta..."/>
+                <http:request method="POST" config-ref="Okta_Introspect_Config" path="/oauth2/default/v1/introspect" doc:name="Okta /introspect">
+                    <http:body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    "token": vars.jwtToken,
+    "client_id": p('mule.okta.client_id'),
+    "client_secret": p('mule.okta.client_secret')
+}]]]></http:body>
+                </http:request>
+                
+                <choice doc:name="Is Token Active?">
+                    <when expression="#[payload.active == true]">
+                        <logger level="INFO" message="SUCCESS: MCP Session Established. Token verified." />
+                    </when>
+                    <otherwise>
+						<ee:transform doc:name="Transform Message" doc:id="83f0df63-bcb8-452b-892d-762e62974874" >
+							<ee:message >
+							</ee:message>
+							<ee:variables >
+								<ee:set-variable variableName="httpStatus" ><![CDATA[401]]></ee:set-variable>
+								<ee:set-variable variableName="errorMessage" ><![CDATA["Bearer Token is inactive or expired."]]></ee:set-variable>
+							</ee:variables>
+						</ee:transform>
+                    
+</otherwise>
+                </choice>
+            </when>
+
+            <when expression="#[not isEmpty(vars.clientId) and not isEmpty(vars.clientSecret)]">
+                <logger level="INFO" message="Auth Strategy: Validating Direct Credentials via Okta..."/>
+                <try doc:name="Try Generating Token">
+                    <http:request method="POST" config-ref="Okta_Introspect_Config" path="/oauth2/default/v1/token" doc:name="Okta /token">
+                        <http:body><![CDATA[#[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+    "grant_type": "client_credentials",
+    "scope": "mcp.invoke",
+    "client_id": vars.clientId,
+    "client_secret": vars.clientSecret
+}]]]></http:body>
+                    </http:request>
+                    
+                    <logger level="INFO" message="SUCCESS: MCP Session Established. Direct Credentials verified."/>
+					<error-handler>
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="d2e9c1c6-b304-4985-aa24-3f04d4c1bf43" type="HTTP:UNAUTHORIZED, HTTP:BAD_REQUEST">
+							<ee:transform doc:name="Transform Message" doc:id="648818ee-3e06-4274-b550-77248072bd7a" >
+								<ee:message />
+								<ee:variables >
+									<ee:set-variable variableName="httpStatus" ><![CDATA[401]]></ee:set-variable>
+									<ee:set-variable variableName="errorMessage" ><![CDATA["Invalid Client ID or Secret."]]></ee:set-variable>
+								</ee:variables>
+							</ee:transform>
+						</on-error-continue>
+
+                    </error-handler>
+                
+</try>
+            </when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="0f2de996-d32e-456b-abd8-46253c2465bd" >
+					<ee:message />
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[401]]></ee:set-variable>
+						<ee:set-variable variableName="errorMessage" ><![CDATA["Request blocked. Missing Authorization or x-client-id headers."]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+
+            </otherwise>
+        
+</choice>
+
+    </flow>
+
+</mule>
